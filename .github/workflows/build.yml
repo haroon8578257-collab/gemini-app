@@ -17,34 +17,35 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Setup Buildozer Environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config wget
+        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config
         pip install cython==0.29.33 buildozer
 
-    - name: Build with Buildozer
+    - name: Configure Spec & Build
       run: |
         buildozer init
         
-        # Title aur Package Name fix
+        # Spec settings
         sed -i 's/title = My Application/title = Chafre Agent/g' buildozer.spec
         sed -i 's/package.name = myapp/package.name = chafreagent/g' buildozer.spec
-        
-        # Requirements aur Permissions
         sed -i 's/requirements = python3,kivy/requirements = python3,kivy,requests,urllib3,certifi,chardet,idna/g' buildozer.spec
         sed -i 's/# android.permissions = INTERNET/android.permissions = INTERNET/g' buildozer.spec
         
-        # NDK 25b Lock (Fixes Broken Pipe Error)
+        # Force NDK 25b & API 33
         sed -i 's/# android.ndk = 25b/android.ndk = 25b/g' buildozer.spec
-        sed -i 's/# android.api = 31/android.api = 31/g' buildozer.spec
+        sed -i 's/# android.api = 31/android.api = 33/g' buildozer.spec
+        sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
+
+        # Run Buildozer
+        buildozer -v android debug
         
-        yes | buildozer -v android debug
+        # Rename output
         mv bin/*.apk bin/chafre-agent.apk
 
-    - name: Upload APK
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: chafre-agent
         path: bin/chafre-agent.apk
-        
