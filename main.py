@@ -1,41 +1,49 @@
-import google.generativeai as genai
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
+import requests
+import json
+import threading
 
-genai.configure(api_key="AIzaSyBHI79Y0OizTCYkOLYUmzVz0tLJX7InMH8")
-model = genai.GenerativeModel("gemini-1.5-flash")
-
+API_KEY = "AIzaSyBHI79Y0OizTCYkOLYUmzVz0tLJX7InMH8"
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
 
 class AgentApp(App):
-
     def build(self):
-        layout = BoxLayout(orientation="vertical")
-        self.input_text = TextInput(
-            hint_text="Type your message...", size_hint_y=0.2
-        )
-        self.output_text = TextInput(readonly=True, size_hint_y=0.6)
-        btn = Button(text="Send to Agent", size_hint_y=0.2)
-        btn.bind(on_press=self.send_msg)
+        layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
+        self.output_text = TextInput(readonly=True, size_hint_y=0.8, multiline=True)
+        self.input_text = TextInput(hint_text="Type message here...", size_hint_y=0.1, multiline=False)
+        btn = Button(text="Send to Agent", size_hint_y=0.1)
+        btn.bind(on_press=self.start_thread)
 
         layout.add_widget(self.output_text)
         layout.add_widget(self.input_text)
         layout.add_widget(btn)
         return layout
 
-    def send_msg(self, instance):
+    def start_thread(self, instance):
+        threading.Thread(target=self.send_msg).start()
+
+    def send_msg(self):
         user_input = self.input_text.text
-        if user_input:
-            try:
-                res = model.generate_content(user_input)
-                self.output_text.text += (
-                    f"\nUser: {user_input}\nAgent: {res.text}\n"
-                )
-            except Exception as e:
-                self.output_text.text += f"\nError: {e}\n"
-            self.input_text.text = ""
+        if not user_input:
+            return
+        
+        self.output_text.text += f"\nYou: {user_input}"
+        self.input_text.text = ""
 
+        headers = {'Content-Type': 'application/json'}
+        payload = {"contents": [{"parts": [{"text": user_input}]}]}
 
-if __name__ == "__main__":
+        try:
+            response = requests.post(URL, headers=headers, data=json.dumps(payload))
+            data = response.json()
+            reply = data['candidates'][0]['content']['parts'][0]['text']
+            self.output_text.text += f"\nAgent: {reply}\n"
+        except Exception as e:
+            self.output_text.text += f"\nError: {str(e)}\n"
+
+if __name__ == '__main__':
     AgentApp().run()
+    
