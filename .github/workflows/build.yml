@@ -20,17 +20,24 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config
+        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config wget
         pip install cython==0.29.33 buildozer
 
     - name: Build with Buildozer
       run: |
         buildozer init
+        
+        # Title aur Package Name fix
         sed -i 's/title = My Application/title = Chafre Agent/g' buildozer.spec
         sed -i 's/package.name = myapp/package.name = chafreagent/g' buildozer.spec
-        sed -i 's/requirements = python3,kivy/requirements = python3,flask,requests,urllib3,certifi,chardet,idna/g' buildozer.spec
-        sed -i 's/# p4a.bootstrap = sdl2/p4a.bootstrap = webview/g' buildozer.spec
+        
+        # Requirements aur Permissions
+        sed -i 's/requirements = python3,kivy/requirements = python3,kivy,requests,urllib3,certifi,chardet,idna/g' buildozer.spec
         sed -i 's/# android.permissions = INTERNET/android.permissions = INTERNET/g' buildozer.spec
+        
+        # NDK 25b Lock (Fixes Broken Pipe Error)
+        sed -i 's/# android.ndk = 25b/android.ndk = 25b/g' buildozer.spec
+        sed -i 's/# android.api = 31/android.api = 31/g' buildozer.spec
         
         yes | buildozer -v android debug
         mv bin/*.apk bin/chafre-agent.apk
