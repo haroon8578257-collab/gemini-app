@@ -7,15 +7,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |
@@ -28,7 +28,9 @@ jobs:
         buildozer init
         sed -i 's/title = My Application/title = Chafre Agent/g' buildozer.spec
         sed -i 's/package.name = myapp/package.name = chafreagent/g' buildozer.spec
-        sed -i 's/requirements = python3,kivy/requirements = python3,kivy,google-generativeai,requests,urllib3,certifi/g' buildozer.spec
+        sed -i 's/requirements = python3,kivy/requirements = python3,kivy,requests,urllib3,certifi,chardet,idna/g' buildozer.spec
+        sed -i 's/# android.permissions = INTERNET/android.permissions = INTERNET/g' buildozer.spec
+        
         yes | buildozer -v android debug
         mv bin/*.apk bin/chafre-agent.apk
 
