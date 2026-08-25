@@ -26,12 +26,22 @@ jobs:
     - name: Build with Buildozer
       run: |
         buildozer init
+        # App Title aur Package Name set karein
+        sed -i 's/title = My Application/title = Chafre Agent/g' buildozer.spec
+        sed -i 's/package.name = myapp/package.name = chafreagent/g' buildozer.spec
+        
+        # Requirements add karein
         sed -i 's/requirements = python3,kivy/requirements = python3,kivy,google-generativeai,requests,urllib3,certifi/g' buildozer.spec
+        
+        # Build APK
         yes | buildozer -v android debug
+        
+        # File ka naam chafre-agent.apk rakhein
+        mv bin/*.apk bin/chafre-agent.apk
 
     - name: Upload APK
       uses: actions/upload-artifact@v3
       with:
-        name: gemini-agent-apk
-        path: bin/*.apk
+        name: chafre-agent
+        path: bin/chafre-agent.apk
         
