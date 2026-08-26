@@ -1,50 +1,48 @@
 name: Build Android APK
-
 on:
   push:
     branches: [ "main", "master" ]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-
-    - name: Setup Buildozer Environment
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config
+        sudo apt-get install -y build-essential libssl-dev libffi-dev python3-dev zip unzip zlib1g-dev openjdk-17-jdk autoconf libtool pkg-config wget
         pip install cython==0.29.33 buildozer
 
-    - name: Configure Spec & Build
+    - name: Build with Buildozer
       run: |
         buildozer init
-        
-        # Spec settings
+
+        # Title aur Package Name
         sed -i 's/title = My Application/title = Chafre Agent/g' buildozer.spec
         sed -i 's/package.name = myapp/package.name = chafreagent/g' buildozer.spec
-        sed -i 's/requirements = python3,kivy/requirements = python3,kivy,requests,urllib3,certifi,chardet,idna/g' buildozer.spec
+
+        # Requirements: flask + kivy + pyjnius + android + gemini call ke liye requests
+        sed -i 's/requirements = python3,kivy/requirements = python3,kivy,flask,requests,urllib3,certifi,chardet,idna,pyjnius,android/g' buildozer.spec
+
+        # Permissions
         sed -i 's/# android.permissions = INTERNET/android.permissions = INTERNET/g' buildozer.spec
-        
-        # Force NDK 25b & API 33
+
+        # NDK / API lock
         sed -i 's/# android.ndk = 25b/android.ndk = 25b/g' buildozer.spec
-        sed -i 's/# android.api = 31/android.api = 33/g' buildozer.spec
-        sed -i 's/# android.accept_sdk_license = False/android.accept_sdk_license = True/g' buildozer.spec
+        sed -i 's/# android.api = 31/android.api = 31/g' buildozer.spec
 
-        # Run Buildozer
-        buildozer -v android debug
-        
-        # Rename output
+        yes | buildozer -v android debug
         mv bin/*.apk bin/chafre-agent.apk
+      env:
+        # Ye secret GitHub repo Settings > Secrets and variables > Actions mein add karein
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-    - name: Upload APK Artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: chafre-agent
